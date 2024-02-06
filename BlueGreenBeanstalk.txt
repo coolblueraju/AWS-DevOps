@@ -1,0 +1,58 @@
+Blue/Green Deployments with Elastic Beanstalk
+Introduction
+In this lab, we will create a blue/green deployment using Elastic Beanstalk. We will accomplish this by creating and cloning an Elastic Beanstalk environment. This is an important concept if you're looking to avoid disrupting live applications when testing changes to the application. By the end of this lab, you should be able to create your very own blue/green deployment using Elastic Beanstalk
+
+Solution
+Log In to AWS Console
+Log in to the AWS Management Console using the credentials provided on the lab instructions page. Make sure you're using the us-east-1 Region.
+Under Recently visited, select VPC. (If VPC doesn't show up under Recently visited, you can reach it by entering vpc in the search bar on top of the console and selecting VPC from the search results.)
+Select VPCs.
+Click Your VPCs.
+In the top right corner, click the Actions button.
+From the dropdown menu, select Create default VPC.
+Click the Create default VPC button.
+Create a service role for Elastic Beanstalk
+Open the Identity and Access Management (IAM) console.
+Click Roles.
+Click Create role.
+Under Use case, choose Elastic Beanstalk, select Elastic Beanstalk - Customizable, and click Next.
+Click Next.
+For Role name, type CustomServiceRoleForElasticBeanstalk.
+Click Create role.
+Create an EC2 instance profile for Elastic Beanstalk
+Open the Identity and Access Management (IAM) console.
+Click Roles.
+Click Create role.
+Under Use case, choose EC2.
+Click Next.
+Select the AWSElasticBeanstalkReadOnly policy name.
+Click Next.
+For Role name, type CustomEC2InstanceProfileForElasticBeanstalk.
+Click Create role.
+Create Elastic Beanstalk Environment
+In the search bar on top, enter elastic beanstalk.
+From the search results, select Elastic Beanstalk.
+Click the Create application button.
+On the Configure environment page, under Application name, enter Blue green test.
+On the Configure environment page, under Platform, select any available platform.
+On the Configure environment page, click Next.
+On the Configure service access page, for Service role, select Use an existing service role and choose the CustomServiceRoleForElasticBeanstalk role.
+On the Configure service access page, for EC2 instance profile, choose the CustomEC2InstanceProfileForElasticBeanstalk role.
+On the Configure service access page, click Next.
+On the Set up networking, database, and tags - optional page, click Next.
+On the Configure instance traffic and scaling - optional page, click Next.
+On the Configure updates, monitoring, and logging - optional page, under System, click Basic.
+On the Configure updates, monitoring, and logging - optional page, under Managed updates, uncheck the Activated box.
+On the Configure updates, monitoring, and logging - optional page, click Next.
+On the Review page, click Submit.
+It may take a few minutes for Elastic Beanstalk to launch your environment.
+Clone Elastic Beanstalk Environment
+Once the environment is successfully launched and you see the health of the environment is Green, click on Environments in the left-hand navigation menu or in the breadcrumb trail on top of the page.
+Click the radio button next to Bluegreentest-env.
+Click the Actions button.
+From the dropdown menu, select Clone environment.
+On the Clone environment page, under Existing service roles, select CustomServiceRoleForElasticBeanstalk.
+On the Clone environment page, click Clone. It may take a few minutes for Elastic Beanstalk to clone and launch your environment.
+Once the cloned environment is successfully launched and you see the health of the cloned environment is Green, click on Environments in the left-hand navigation menu or in the breadcrumb trail on top of the page. You should see that the health of both environments is Green. This means both environments are ready to be used in a blue/green deployment.
+Conclusion
+Congratulations — you've completed this hands-on lab!
