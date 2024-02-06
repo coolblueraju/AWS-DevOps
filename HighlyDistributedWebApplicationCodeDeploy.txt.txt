@@ -1,0 +1,109 @@
+Rolling Updates to a Highly Distributed Web Application with AWS CodeDeploy
+Introduction
+A DevOps engineer needs to deploy an application to a fleet of existing servers within AWS. When the rollout is complete, they need to push out an update, without taking the application offline. In this lab, we will use AWS CodeDeploy to manage code deployments and updates to a fleet of EC2 instances running in an Auto Scaling group and presented behind an elastic load balancer.
+
+Solution
+Log in to the live AWS environment using the credentials provided. Make sure you're in the N. Virginia (us-east-1) region throughout the lab.
+
+Download the two .zip files for the lab at the lab GitHub page.
+
+Create an S3 Bucket to Store Application Code
+Navigate to S3.
+Click + Create bucket.
+On the Name and region screen, give your bucket a unique name. (Note: It must be all lowercase letters and be unique across all AWS accounts.)
+Click Create.
+Upload both lab .zip files into your bucket (found on the lab GitHub page).
+Create a CodeDeploy In-Place Deployment
+Create a CodeDeploy Application
+In a new browser tab, navigate to CodeDeploy.
+Click Applications in the left-hand menu.
+Click Create application.
+Set the following values:
+Application name: demo-app
+Compute platform: EC2/On-premises
+Select Create application.
+Create a CodeDeploy Deployment Group
+From the CodeDeploy applications details page, click Create deployment group.
+Set the following values:
+Deployment group name: demo-group
+Service role: Select the role created with this lab (the only option)
+Deployment type: In-place
+Environment configuration: Amazon EC2 Auto Scaling groups
+From the dropdown, select la-scale-asg- (the only option)
+Load balancer: Classic Load Balancer.
+From the dropdown list, select la-lab (the only option)
+Click Create deployment group.
+Create a CodeDeploy Deployment
+From the CodeDeploy deployment group details page, click Create deployment.
+Set the following values:
+Deployment group: demo-group
+Revision type: My application is stored in Amazon S3
+Revision location: Enter the path of the SampleApp_Linux.zip object in your bucket (e.g., s3://<YOUR BUCKET NAME/SampleApp_Linux.zip)
+Additional deployment behavior settings / Content options: Overwrite the content
+Click Create deployment. It will take about 10 minutes to finish being created.
+Test the Deployed Application
+Navigate to EC2.
+Click Load Balancers in the left-hand menu.
+Click the Description tab, and copy the value for DNS name.
+Paste that value into a new browser tab.
+Ensure you can see the sample web application.
+Create a CodeDeploy Blue-Green Deployment
+Create a CodeDeploy Deployment Group
+Navigate to CodeDeploy.
+Click Applications in the left-hand menu.
+Click demo-app in the list of applications.
+From the CodeDeploy applications details page, click Create deployment group.
+Set the following values:
+Deployment group name: demo-blue-green
+Service role: Select the role created with this lab (the only option)
+Deployment type: Blue/green
+Environment configuration: Automatically copy Amazon EC2 Auto Scaling group
+From the dropdown, select la-scale-asg- (the only option)
+Load balancer: Classic Load Balancer.
+From the dropdown list, select la-lab (the only option)
+Deployment settings: Ensure Reroute traffic immediately is selected, ensure Terminate the original instances in the deployment group is selected, and ensure 0's (zeros) are in place for Days, Hours, and Minutes.
+Load balancer: Classic Load Balancer
+From the dropdown, select la-lab (the only option)
+Click Create deployment group.
+Create a CodeDeploy Deployment
+From the CodeDeploy deployment group details page, click Create deployment.
+Set the following values:
+Deployment group: demo-blue-green
+Revision type: My application is stored in Amazon S3
+Revision location: Enter the path of the SampleApp_Linux_update.zip object in your bucket (e.g., s3://<YOUR BUCKET NAME>/SampleApp_Linux_update.zip)
+Additional deployment behavior settings / Content options: Overwrite the content
+Click Create deployment. It will take about 10 minutes to finish being created.
+Test the Updated Application
+Note: This is a repeat of the previous testing step. If you have a browser tab open still from that testing, you may simply press refresh in your browser.
+
+Navigate to EC2.
+Click Load Balancers in the left-hand menu.
+Click the Description tab, and copy the value for DNS name.
+Paste that value into a new browser tab.
+Ensure you can see the sample web application. You should notice there is a mistake on the page: It says it's deployed with Azure! Next, we will look at rolling this update back.
+Perform a Manual Rollback
+Note: Performing a manual rollback, in this case, is the same as performing an in-place deployment and will follow the same process. There are other options for rolling back code when multiple deployments have been made from the same deployment group. In that case, you can ask CodeDeploy to roll back to the last known good state. In this lab, however, we have only deployed once per deployment group, and the error in the code is not visible to CodeDeploy, as it's a wording issue on the site.
+
+Create a CodeDeploy Deployment Group
+Back in CodeDeploy, click Applications in the left-hand menu.
+Click demo-app in the list of applications.
+From the CodeDeploy applications details page, click Create deployment group.
+Set the following values:
+Deployment group name: quick-fix
+Service role: Select the role created with this lab (the only option)
+Deployment type: In-place
+Environment configuration: Amazon EC2 Auto Scaling groups
+From the dropdown, select demo-blue-green- (the only option)
+Load balancer: Classic Load Balancer.
+From the dropdown list, select la-lab (the only option)
+Click Create deployment group.
+Create a CodeDeploy Deployment
+From the CodeDeploy deployment group details page, click Create deployment.
+Set the following values:
+Deployment group: quick-fix
+Revision type: My application is stored in Amazon S3
+Revision location: Enter the path of the SampleApp_Linux.zip object in your bucket (e.g., s3://<YOUR BUCKET NAME>/SampleApp_Linux.zip)
+Additional deployment behavior settings / Content options: Overwrite the content
+Click Create deployment. It will take about 10 minutes to finish being created.
+Conclusion
+Congratulations on successfully completing this hands-on lab!
