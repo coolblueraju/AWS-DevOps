@@ -1,0 +1,63 @@
+CodePipeline for Continuous Deployment to Elastic Beanstalk
+Introduction
+In this hands-on lab, we will use CodePipeline to deploy to an Elastic Beanstalk environment. This is a quick way to set up a CodePipeline pipeline, and the first thing to do is create an Elastic Beanstalk environment. Once the Elastic Beanstalk environment is set up, the source repository can be configured and then the CodePipeline pipeline is configured. Ultimately, the deployment service will be Elastic Beanstalk, and each deployment will be to the Elastic Beanstalk environment.
+
+Solution
+Log in to the live AWS environment using the credentials provided. Make sure you're in the N. Virginia (us-east-1) region throughout the lab.
+
+Download the ZIP file needed for this lab at the lab GitHub page.
+
+Create Elastic Beanstalk Environment
+Navigate to Elastic Beanstalk.
+Click Create application.
+On the Configure environment page, set the following values:
+Application name: continuousdeployment
+Platform: PHP
+Application code: Sample application
+Click Next.
+Select Use an existing service role and choose the existing service role that contains RootRole.
+For EC2 instance profile, select the existing profile that contains InstanceLoggingProfile.
+Click Next.
+Under Virtual Private Cloud (VPC), select the listed VPC (from the dropdown).
+Under Public IP address, check Activated.
+In the Instance subnets section, select all three available subnets.
+Click Next.
+Under EC2 Security groups, check the non-default security group name.
+Click Next.
+Click Next.
+Review your configurations and click Submit. It will take a few minutes to complete creation.
+Create an S3 Bucket
+Navigate to S3.
+Click Create bucket.
+In the Bucket name field, type a unique DNS-compliant name.
+Click Next.
+On the Configure options screen, enable versioning.
+Click Next > Next > Create bucket.
+Click to open the newly created bucket.
+Upload the aws-codepipeline-s3-aws-codedeploy_linux (1).zip file (which you downloaded at the start of the lab).
+Click on the uploaded file name, and copy its key to a text file for use later in this lab.
+Create an AWS CodePipeline
+Navigate to CodePipeline.
+On the Welcome page, click Create pipeline.
+If this is your first time using CodePipeline, click Get Started.
+
+On the Choose pipeline settings page, set the following values:
+Pipeline name: CD2ElasticBeanstalk
+Service role: New service role
+Click Next.
+On the Add source stage page, set the following values:
+Source provider: Amazon S3
+Bucket: Select your bucket
+S3 object key: Paste in the bucket key you copied a minute ago
+Click Next.
+Click Skip build stage > Skip.
+On the Add deploy stage page, set the following values:
+Deploy provider: AWS Elastic Beanstalk
+Application name: continuousdeployment
+Environment name: Continuousdeployment-env
+Click Next.
+Click Create pipeline.
+Once it's finished going through its stages, head back to Elastic Beanstalk.
+Navigate to Continuousdeployment-env, and click the listed URL. We should see a success message.
+Conclusion
+Congratulations on successfully completing this hands-on lab!
