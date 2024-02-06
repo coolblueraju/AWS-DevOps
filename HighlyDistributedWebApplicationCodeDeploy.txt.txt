@@ -5,7 +5,7 @@ A DevOps engineer needs to deploy an application to a fleet of existing servers 
 Solution
 Log in to the live AWS environment using the credentials provided. Make sure you're in the N. Virginia (us-east-1) region throughout the lab.
 
-Download the two .zip files for the lab at the lab GitHub page.
+Download the two .zip files for the lab at the lab GitHub page. https://github.com/coolblueraju/content-aws-developertools/tree/master/Rolling-updates-to-a-highly-distributed-web-application-with-AWS-CodeDeploy
 
 Create an S3 Bucket to Store Application Code
 Navigate to S3.
