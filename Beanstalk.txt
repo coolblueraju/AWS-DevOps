@@ -1,3 +1,55 @@
+Learning Objectives
+0 of 3 completed
+
+
+Create Elastic Beanstalk Environment
+
+Navigate to Elastic Beanstalk.
+Click Create application.
+On the Configure environment page, set the following values:
+Application name: continuousdeployment
+Platform: PHP
+Application code: Sample application
+Click Next.
+Select Use an existing service role and choose the existing service role that contains RootRole.
+For EC2 instance profile, select the existing profile that contains InstanceLoggingProfile.
+Click Next.
+Under Virtual Private Cloud (VPC), select the listed VPC (from the dropdown).
+Under Public IP address, check Activated.
+In the Instance subnets section, select all three available subnets.
+Click Next.
+Under EC2 Security groups, check the non-default security group name.
+Click Next.
+Click Next.
+Review your configurations and click Submit. It will take a few minutes to complete creation.
+
+Create an S3 Bucket
+
+Be sure to download the files listed in the lab instructions for later use in this lab.
+Navigate to S3.
+Click Create bucket.
+In the Bucket name field, type a unique DNS-compliant name.
+Click Next.
+On the Configure options screen, enable versioning.
+Click Next > Next > Create bucket.
+Upload the ZIP file that was downloaded earlier in this lab to the new S3 bucket.
+Click on the uploaded file name, and copy the key to a text file for use later in this lab.
+
+Create an AWS CodePipeline
+
+Navigate to CodePipeline.
+On the Welcome page, click Create pipeline.
+If this is your first time using CodePipeline, click Get Started.
+
+On the Choose pipeline settings page, in Pipeline name, enter the name for your pipeline.
+In Service role, choose New service role to allow CodePipeline to create a new service role in IAM.
+Click Next.
+On the Add source stage page, in Source provider, choose S3, specify its required options, and then click Next.
+Click Skip build stage.
+On the Add deploy stage page, set AWS Elastic Beanstalk as the Deploy provider. In Application name, enter or choose the name of an existing Elastic Beanstalk application. In Environment name, enter an environment for the application. Click Next.
+On the Review page, review your pipeline configuration, and then click Create pipeline to create the pipeline.
+
+======================================================
 CodePipeline for Continuous Deployment to Elastic Beanstalk
 Introduction
 In this hands-on lab, we will use CodePipeline to deploy to an Elastic Beanstalk environment. This is a quick way to set up a CodePipeline pipeline, and the first thing to do is create an Elastic Beanstalk environment. Once the Elastic Beanstalk environment is set up, the source repository can be configured and then the CodePipeline pipeline is configured. Ultimately, the deployment service will be Elastic Beanstalk, and each deployment will be to the Elastic Beanstalk environment.
