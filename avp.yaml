@@ -1,0 +1,364 @@
+{
+  "Parameters": {
+    "apiGatewayId": {
+      "Type": "String",
+      "Description": "The ID of the api gateway REST api you want the authorizer connected to"
+    },
+    "policyStoreId": {
+      "Type": "String",
+      "Description": "The ID of the AVP policy store the authorizer is connected to"
+    },
+    "tokenType": {
+      "Type": "String",
+      "Default": "accessToken",
+      "AllowedValues": [
+        "accessToken",
+        "identityToken"
+      ],
+      "Description": "Whether the token is accessToken or identityToken"
+    },
+    "endpointOverride": {
+      "Type": "String",
+      "Description": "Internal use only"
+    },
+    "namespace": {
+      "Type": "String",
+      "Description": "Schema namespace"
+    },
+    "apiStage": {
+      "Type": "String",
+      "Default": "",
+      "Description": "Stage to deploy once the authorizer is attached to the APIs"
+    },
+    "shouldAttachAuthorizer": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "Description": "whether authorizer should be attached or not"
+    }
+  },
+  "Resources": {
+    "AVPAuthorizerLambdaServiceRole636DB552": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    "AVPAuthorizerLambdaServiceRoleDefaultPolicy0D7144D2": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "verifiedpermissions:isAuthorizedWithToken",
+                "logs:PutLogEvents"
+              ],
+              "Effect": "Allow",
+              "Resource": "*"
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "AVPAuthorizerLambdaServiceRoleDefaultPolicy0D7144D2",
+        "Roles": [
+          {
+            "Ref": "AVPAuthorizerLambdaServiceRole636DB552"
+          }
+        ]
+      }
+    },
+    "AVPAuthorizerLambdaE1073915": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "ZipFile": "const { VerifiedPermissions } = require('@aws-sdk/client-verifiedpermissions');\nconst policyStoreId = process.env.POLICY_STORE_ID;\nconst namespace = process.env.NAMESPACE;\nconst tokenType = process.env.TOKEN_TYPE;\nconst resourceType = `${namespace}::Application`;\nconst resourceId = namespace;\nconst actionType = `${namespace}::Action`;\n\nconst verifiedpermissions = !!process.env.ENDPOINT\n  ? new VerifiedPermissions({\n    endpoint: `https://${process.env.ENDPOINT}ford.${process.env.AWS_REGION}.amazonaws.com`,\n  })\n  : new VerifiedPermissions();\n\nfunction getContextMap(event) {\n  const hasPathParameters = Object.keys(event.pathParameters).length > 0;\n  const hasQueryString = Object.keys(event.queryStringParameters).length > 0;\n  if (!hasPathParameters && !hasQueryString) {\n    return undefined;\n  }\n  const pathParametersObj = !hasPathParameters ? {} : {\n    pathParameters: {\n      // transform regular map into smithy format\n      record: Object.keys(event.pathParameters).reduce((acc, pathParamKey) => {\n        return {\n          ...acc,\n          [pathParamKey]: {\n            string: event.pathParameters[pathParamKey]\n          }\n        }\n      }, {}),\n    }\n  };\n  const queryStringObj = !hasQueryString ? {} : {\n    queryStringParameters: {\n      // transform regular map into smithy format\n      record: Object.keys(event.queryStringParameters).reduce((acc, queryParamKey) => {\n        return {\n          ...acc,\n          [queryParamKey]: {\n            string: event.queryStringParameters[queryParamKey]\n          }\n        }\n      }, {}),\n    }\n  };\n  return {\n    contextMap: {\n      ...queryStringObj,\n      ...pathParametersObj,\n    }\n  };\n}\n\nasync function handler(event, context) {\n  // https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-known-issues.html\n  // > Header names and query parameters are processed in a case-sensitive way.\n  // https://www.rfc-editor.org/rfc/rfc7540#section-8.1.2\n  // > header field names MUST be converted to lowercase prior to their encoding in HTTP/2\n  // curl defaults to HTTP/2\n  let bearerToken =\n    event.headers?.Authorization || event.headers?.authorization;\n  if (bearerToken?.toLowerCase().startsWith('bearer ')) {\n    // per https://www.rfc-editor.org/rfc/rfc6750#section-2.1 \"Authorization\" header should contain:\n    //  \"Bearer\" 1*SP b64token\n    // however, match behavior of COGNITO_USER_POOLS authorizer allowing \"Bearer\" to be optional\n    bearerToken = bearerToken.split(' ')[1];\n  }\n  try {\n    const parsedToken = JSON.parse(Buffer.from(bearerToken.split('.')[1], 'base64').toString());\n    const actionId = `${event.requestContext.httpMethod.toLowerCase()} ${event.requestContext.resourcePath}`;\n\n    const input = {\n      [tokenType]: bearerToken,\n      policyStoreId: policyStoreId,\n      action: {\n        actionType: actionType,\n        actionId: actionId,\n      },\n      resource: {\n        entityType: resourceType,\n        entityId: resourceId\n      },\n      context: getContextMap(event),\n    };\n\n    const authResponse = await verifiedpermissions.isAuthorizedWithToken(input);\n    console.log('Decision from AVP:', authResponse.decision);\n    let principalId = `${parsedToken.iss.split('/')[3]}|${parsedToken.sub}`;\n    if (authResponse.principal) {\n      const principalEidObj = authResponse.principal;\n      principalId = `${principalEidObj.entityType}::\"${principalEidObj.entityId}\"`;\n    }\n\n    return {\n      principalId,\n      policyDocument: {\n        Version: '2012-10-17',\n        Statement: [\n          {\n            Action: 'execute-api:Invoke',\n            Effect: authResponse.decision.toUpperCase() === 'ALLOW' ? 'Allow' : 'Deny',\n            Resource: event.methodArn\n          }\n        ]\n      },\n      context: {\n        actionId,\n      }\n    }\n  } catch (e) {\n    console.log('Error: ', e);\n    return {\n      principalId: '',\n      policyDocument: {\n        Version: '2012-10-17',\n        Statement: [\n          {\n            Action: 'execute-api:Invoke',\n            Effect: 'Deny',\n            Resource: event.methodArn\n          }\n        ]\n      },\n      context: {}\n    }\n  }\n}\n\nmodule.exports = {\n  handler,\n};\n"
+        },
+        "Environment": {
+          "Variables": {
+            "POLICY_STORE_ID": {
+              "Ref": "policyStoreId"
+            },
+            "TOKEN_TYPE": {
+              "Ref": "tokenType"
+            },
+            "NAMESPACE": {
+              "Ref": "namespace"
+            },
+            "ENDPOINT": {
+              "Ref": "endpointOverride"
+            }
+          }
+        },
+        "FunctionName": {
+          "Fn::Join": [
+            "",
+            [
+              "AVPAuthorizerLambda-",
+              {
+                "Ref": "policyStoreId"
+              }
+            ]
+          ]
+        },
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "AVPAuthorizerLambdaServiceRole636DB552",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs20.x"
+      },
+      "DependsOn": [
+        "AVPAuthorizerLambdaServiceRoleDefaultPolicy0D7144D2",
+        "AVPAuthorizerLambdaServiceRole636DB552"
+      ]
+    },
+    "AVPAuthorizerConfiguration": {
+      "Type": "AWS::ApiGateway::Authorizer",
+      "Properties": {
+        "AuthorizerResultTtlInSeconds": 120,
+        "AuthorizerUri": {
+          "Fn::Sub": [
+            "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${authorizerFn}/invocations",
+            {
+              "authorizerFn": {
+                "Ref": "AVPAuthorizerLambdaE1073915"
+              }
+            }
+          ]
+        },
+        "IdentitySource": "method.request.header.Authorization,context.httpMethod,context.path",
+        "Name": {
+          "Fn::Join": [
+            "",
+            [
+              "AVPAuthorizer-",
+              {
+                "Ref": "policyStoreId"
+              }
+            ]
+          ]
+        },
+        "RestApiId": {
+          "Ref": "apiGatewayId"
+        },
+        "Type": "REQUEST"
+      }
+    },
+    "LambdaInvokePermissions": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Ref": "AVPAuthorizerLambdaE1073915"
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Sub": [
+            "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGwId}/authorizers/${authorizerId}",
+            {
+              "apiGwId": {
+                "Ref": "apiGatewayId"
+              },
+              "authorizerId": {
+                "Fn::GetAtt": [
+                  "AVPAuthorizerConfiguration",
+                  "AuthorizerId"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ApiGatewayAttacherFnServiceRole5D04CEF5": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Condition": "shouldAttachAuthorizerCond"
+    },
+    "ApiGatewayAttacherFnServiceRoleDefaultPolicyEDB91115": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "apigateway:POST",
+                "apigateway:PATCH",
+                "apigateway:GET",
+                "logs:PutLogEvents"
+              ],
+              "Effect": "Allow",
+              "Resource": "*"
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "ApiGatewayAttacherFnServiceRoleDefaultPolicyEDB91115",
+        "Roles": [
+          {
+            "Ref": "ApiGatewayAttacherFnServiceRole5D04CEF5"
+          }
+        ]
+      },
+      "Condition": "shouldAttachAuthorizerCond"
+    },
+    "ApiGatewayAttacherFnC66B31A9": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "ZipFile": "const { APIGatewayClient, UpdateMethodCommand, CreateDeploymentCommand, GetResourcesCommand } = require('@aws-sdk/client-api-gateway');\nconst apigateway = new APIGatewayClient();\n\nasync function sendResponse(event, context, responseStatus, responseData) {\n  const responseBody = JSON.stringify({\n    StackId: event.StackId,\n    RequestId: event.RequestId,\n    LogicalResourceId: event.LogicalResourceId,\n    PhysicalResourceId: event.RequestType === 'Update' ? event.PhysicalResourceId : event.StackId + '-PostCreation',\n    Status: responseStatus,\n    Reason: `${responseData.Message}. See the details in CloudWatch Log Stream: ${context.logStreamName}`,\n    Data: responseData,\n  });\n\n  console.log('Response body to send to cloudformation:', responseBody);\n\n  try {\n    const responseFromCfn = await fetch(event.ResponseURL, {\n      method: \"put\",\n      body: responseBody,\n      headers: {\n        \"Content-Type\": \"\",\n        \"Content-Length\": `${responseBody.length}`,\n      },\n    });\n    console.log('Response status from cfn responseUrl:', responseFromCfn.status);\n  } catch (error) {\n    console.log('Error sending response to cloudformation:', error);\n  }\n\n};\n\nasync function handler(event, context) {\n  console.log('Received event:', JSON.stringify(event, null, 2));\n\n  const restApiId = process.env.API_GATEWAY_ID;\n  const stage = process.env.API_GATEWAY_STAGE;\n  const authorizerId = process.env.AUTHORIZER_ID;\n  const apiUpdateResult = await patchMethods(restApiId, authorizerId, stage, event.RequestType);\n  await sendResponse(event, context, apiUpdateResult.status, { Message: apiUpdateResult.message });\n}\n\nasync function patchMethods(restApiId, authorizerId, stage, requestType){\n  const methodInfoList = await getAllMethodsForApi(restApiId, authorizerId, authorizerId, requestType);\n  let patchOperations;\n  if (requestType === 'Delete') {\n    patchOperations = [\n      {\n        op: 'replace',\n        path: '/authorizationType',\n        value: 'NONE',\n      },\n    ];\n  } else {\n    patchOperations = [\n      {\n        op: 'replace',\n        path: '/authorizationType',\n        value: 'CUSTOM',\n      },\n      {\n        op: 'replace',\n        path: '/authorizerId',\n        value: authorizerId,\n      },\n    ];\n  }\n  try {\n    for (const methodInfo of methodInfoList) {\n      const params = {\n        httpMethod: methodInfo.method,\n        resourceId: methodInfo.resourceId,\n        restApiId: restApiId,\n        patchOperations,\n      };\n      console.log(`Updating method: ${methodInfo.path} ${methodInfo.method}`);\n      const updateMethodCommand = new UpdateMethodCommand(params);\n      const updateMethodResponse = await apigateway.send(updateMethodCommand);\n      console.log('UpdateMethod response status code:', updateMethodResponse?.$metadata?.httpStatusCode);\n    }\n\n    const deploymentParams = {\n      restApiId: restApiId,\n      stageName: stage,\n    };\n    const createDeploymentCommand = new CreateDeploymentCommand(deploymentParams);\n    const deploymentResponse = await apigateway.send(createDeploymentCommand);\n    console.log('Deployment response:', deploymentResponse);\n    return {\n      status: 'SUCCESS',\n      message: 'Custom resource operation successful'\n    };\n  } catch (error) {\n    console.error('Error:', error);\n    return {\n      status: 'FAILED',\n      message: error.message\n    };\n  }\n}\n\n/**\n * This function gets all methods in the api that need to be updated. When creating/updating, we attach\n * the authorizer to everything. When deleting, we detach it only from the resources where it's attached.\n * OPTIONS method is always ignored.\n * @param {string} restApiId \n * @param {string} authorizerId \n * @param {string} requestType \n */\nasync function getAllMethodsForApi(restApiId, authorizerId, requestType) {\n  const resourcesResponse = await apigateway.send(new GetResourcesCommand({ restApiId, embed: ['methods'], limit: 500 }));\n  const methodsToPatch = [];\n  for (const resourceInfo of (resourcesResponse.items || [])) {\n    if (!resourceInfo.path || !resourceInfo.id) {\n        continue;\n    }\n    const methodDetails = resourceInfo.resourceMethods || {};\n    const methodNames = Object.keys(methodDetails);\n    for (const methodName of methodNames) {\n      if (methodName.toLowerCase() === 'options') {\n          continue;\n      }\n      const isCreateOrUpdate = requestType !== 'Delete';\n      const shouldAuthorizerBeDetached = requestType === 'Delete' && methodDetails[methodName].authorizerId === authorizerId;\n      const shouldIncludeMethodInResult = isCreateOrUpdate || shouldAuthorizerBeDetached;\n      if (shouldIncludeMethodInResult) {\n        methodsToPatch.push({\n          method: methodName,\n          resourceId: resourceInfo.id,\n          path: resourceInfo.path,\n        });\n      }\n    }\n  }\n  return methodsToPatch;\n}\n\nmodule.exports = {\n  handler,\n  patchMethods,\n  getAllMethodsForApi,\n};\n"
+        },
+        "Environment": {
+          "Variables": {
+            "API_GATEWAY_ID": {
+              "Ref": "apiGatewayId"
+            },
+            "API_GATEWAY_STAGE": {
+              "Ref": "apiStage"
+            },
+            "AUTHORIZER_ID": {
+              "Fn::GetAtt": [
+                "AVPAuthorizerConfiguration",
+                "AuthorizerId"
+              ]
+            }
+          }
+        },
+        "FunctionName": {
+          "Fn::Join": [
+            "",
+            [
+              "AVP-ApiGatewayAttacherFn-",
+              {
+                "Ref": "policyStoreId"
+              }
+            ]
+          ]
+        },
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "ApiGatewayAttacherFnServiceRole5D04CEF5",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs20.x",
+        "Timeout": 600
+      },
+      "DependsOn": [
+        "ApiGatewayAttacherFnServiceRoleDefaultPolicyEDB91115",
+        "ApiGatewayAttacherFnServiceRole5D04CEF5"
+      ],
+      "Condition": "shouldAttachAuthorizerCond"
+    },
+    "ApiGatewayAttacher": {
+      "Type": "AWS::CloudFormation::CustomResource",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "ApiGatewayAttacherFnC66B31A9",
+            "Arn"
+          ]
+        }
+      },
+      "Condition": "shouldAttachAuthorizerCond"
+    }
+  },
+  "Conditions": {
+    "shouldAttachAuthorizerCond": {
+      "Fn::And": [
+        {
+          "Fn::Not": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "apiStage"
+                },
+                ""
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Not": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "apiGatewayId"
+                },
+                ""
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "shouldAttachAuthorizer"
+            },
+            "true"
+          ]
+        }
+      ]
+    }
+  },
+  "Rules": {}
+}
