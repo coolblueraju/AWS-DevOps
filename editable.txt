@@ -32,221 +32,165 @@ resource "aws_verifiedpermissions_policy" "ma_policy" {
 
 
 resource "aws_verifiedpermissions_schema" "example" {
-  policy_store_id = aws_verifiedpermissions_policy_store.umb-ma-policy-store.id
+  policy_store_id = aws_verifiedpermissions_policy_store.umb_ma_policy_store.id
   
   definition {
     value = jsonencode({
-      {
-        "umb-enterprise-ma-UIAPIGateway-ns": {
-            "actions": {
-                "delete /Dev/{proxy+}": {
-                    "appliesTo": {
-                        "resourceTypes": [
-                            "Application"
-                        ],
-                        "context": {
-                            "type": "Record",
-                            "attributes": {}
-                        },
-                        "principalTypes": [
-                            "User"
-                        ]
-                    }
-                },
-                "get /{proxy+}": {
-                    "appliesTo": {
-                        "principalTypes": [
-                            "User"
-                        ],
-                        "context": {
-                            "type": "Record",
-                            "attributes": {}
-                        },
-                        "resourceTypes": [
-                            "Application"
-                        ]
-                    }
-                },
-                "patch /{proxy+}": {
-                    "appliesTo": {
-                        "resourceTypes": [
-                            "Application"
-                        ],
-                        "principalTypes": [
-                            "User"
-                        ],
-                        "context": {
-                            "type": "Record",
-                            "attributes": {}
-                        }
-                    }
-                },
-                "get /Dev/{proxy+}": {
-                    "appliesTo": {
-                        "principalTypes": [
-                            "User"
-                        ],
-                        "context": {
-                            "attributes": {},
-                            "type": "Record"
-                        },
-                        "resourceTypes": [
-                            "Application"
-                        ]
-                    }
-                },
-                "patch /Dev/{proxy+}": {
-                    "appliesTo": {
-                        "principalTypes": [
-                            "User"
-                        ],
-                        "resourceTypes": [
-                            "Application"
-                        ],
-                        "context": {
-                            "type": "Record",
-                            "attributes": {}
-                        }
-                    }
-                },
-                "put /{proxy+}": {
-                    "appliesTo": {
-                        "resourceTypes": [
-                            "Application"
-                        ],
-                        "context": {
-                            "attributes": {},
-                            "type": "Record"
-                        },
-                        "principalTypes": [
-                            "User"
-                        ]
-                    }
-                },
-                "post /Dev/{proxy+}": {
-                    "appliesTo": {
-                        "resourceTypes": [
-                            "Application"
-                        ],
-                        "principalTypes": [
-                            "User"
-                        ],
-                        "context": {
-                            "type": "Record",
-                            "attributes": {}
-                        }
-                    }
-                },
-                "put /Dev/{proxy+}": {
-                    "appliesTo": {
-                        "context": {
-                            "attributes": {},
-                            "type": "Record"
-                        },
-                        "principalTypes": [
-                            "User"
-                        ],
-                        "resourceTypes": [
-                            "Application"
-                        ]
-                    }
-                },
-                "delete /{proxy+}": {
-                    "appliesTo": {
-                        "principalTypes": [
-                            "User"
-                        ],
-                        "resourceTypes": [
-                            "Application"
-                        ],
-                        "context": {
-                            "type": "Record",
-                            "attributes": {}
-                        }
-                    }
-                },
-                "get /maOnBoarding": {
-                    "appliesTo": {
-                        "context": {
-                            "attributes": {},
-                            "type": "Record"
-                        },
-                        "principalTypes": [
-                            "User"
-                        ],
-                        "resourceTypes": [
-                            "Application"
-                        ]
-                    }
-                },
-                "get /ma-ui-Cognito-Auth": {
-                    "appliesTo": {
-                        "resourceTypes": [
-                            "Application"
-                        ],
-                        "principalTypes": [
-                            "User"
-                        ],
-                        "context": {
-                            "type": "Record",
-                            "attributes": {}
-                        }
-                    }
-                },
-                "get /": {
-                    "appliesTo": {
-                        "principalTypes": [
-                            "User"
-                        ],
-                        "context": {
-                            "type": "Record",
-                            "attributes": {}
-                        },
-                        "resourceTypes": [
-                            "Application"
-                        ]
-                    }
-                },
-                "post /{proxy+}": {
-                    "appliesTo": {
-                        "context": {
-                            "attributes": {},
-                            "type": "Record"
-                        },
-                        "principalTypes": [
-                            "User"
-                        ],
-                        "resourceTypes": [
-                            "Application"
-                        ]
-                    }
-                }
-            },
-            "entityTypes": {
-                "Application": {
-                    "shape": {
-                        "type": "Record",
-                        "attributes": {}
-                    }
-                },
-                "User": {
-                    "shape": {
-                        "attributes": {},
-                        "type": "Record"
-                    },
-                    "memberOfTypes": [
-                        "UserGroup"
-                    ]
-                },
-                "UserGroup": {
-                    "shape": {
-                        "type": "Record",
-                        "attributes": {}
-                    }
-                }
+      "umb-enterprise-ma-UIAPIGateway-ns": {
+        "actions": {
+          "delete /Dev/{proxy+}": {
+            "appliesTo": {
+              "resourceTypes": ["Application"],
+              "context": {
+                "type": "Record",
+                "attributes": {}
+              },
+              "principalTypes": ["User"]
             }
+          },
+          "get /{proxy+}": {
+            "appliesTo": {
+              "principalTypes": ["User"],
+              "context": {
+                "type": "Record",
+                "attributes": {}
+              },
+              "resourceTypes": ["Application"]
+            }
+          },
+          "patch /{proxy+}": {
+            "appliesTo": {
+              "resourceTypes": ["Application"],
+              "principalTypes": ["User"],
+              "context": {
+                "type": "Record",
+                "attributes": {}
+              }
+            }
+          },
+          "get /Dev/{proxy+}": {
+            "appliesTo": {
+              "principalTypes": ["User"],
+              "context": {
+                "type": "Record",
+                "attributes": {}
+              },
+              "resourceTypes": ["Application"]
+            }
+          },
+          "patch /Dev/{proxy+}": {
+            "appliesTo": {
+              "principalTypes": ["User"],
+              "resourceTypes": ["Application"],
+              "context": {
+                "type": "Record",
+                "attributes": {}
+              }
+            }
+          },
+          "put /{proxy+}": {
+            "appliesTo": {
+              "resourceTypes": ["Application"],
+              "context": {
+                "type": "Record",
+                "attributes": {}
+              },
+              "principalTypes": ["User"]
+            }
+          },
+          "post /Dev/{proxy+}": {
+            "appliesTo": {
+              "resourceTypes": ["Application"],
+              "principalTypes": ["User"],
+              "context": {
+                "type": "Record",
+                "attributes": {}
+              }
+            }
+          },
+          "put /Dev/{proxy+}": {
+            "appliesTo": {
+              "context": {
+                "type": "Record",
+                "attributes": {}
+              },
+              "principalTypes": ["User"],
+              "resourceTypes": ["Application"]
+            }
+          },
+          "delete /{proxy+}": {
+            "appliesTo": {
+              "principalTypes": ["User"],
+              "resourceTypes": ["Application"],
+              "context": {
+                "type": "Record",
+                "attributes": {}
+              }
+            }
+          },
+          "get /maOnBoarding": {
+            "appliesTo": {
+              "context": {
+                "type": "Record",
+                "attributes": {}
+              },
+              "principalTypes": ["User"],
+              "resourceTypes": ["Application"]
+            }
+          },
+          "get /ma-ui-Cognito-Auth": {
+            "appliesTo": {
+              "resourceTypes": ["Application"],
+              "principalTypes": ["User"],
+              "context": {
+                "type": "Record",
+                "attributes": {}
+              }
+            }
+          },
+          "get /": {
+            "appliesTo": {
+              "principalTypes": ["User"],
+              "context": {
+                "type": "Record",
+                "attributes": {}
+              },
+              "resourceTypes": ["Application"]
+            }
+          },
+          "post /{proxy+}": {
+            "appliesTo": {
+              "context": {
+                "type": "Record",
+                "attributes": {}
+              },
+              "principalTypes": ["User"],
+              "resourceTypes": ["Application"]
+            }
+          }
+        },
+        "entityTypes": {
+          "Application": {
+            "shape": {
+              "type": "Record",
+              "attributes": {}
+            }
+          },
+          "User": {
+            "shape": {
+              "attributes": {},
+              "type": "Record"
+            },
+            "memberOfTypes": ["UserGroup"]
+          },
+          "UserGroup": {
+            "shape": {
+              "type": "Record",
+              "attributes": {}
+            }
+          }
         }
-    }
+      }
     })
   }
 }
